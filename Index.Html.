@@ -7,15 +7,17 @@
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        :root { --blue: #0066b2; --bg: #05070a; }
+        :root { --blue: #0066b2; --orange: #ff9d00; --bg: #05070a; }
         body { margin: 0; background: var(--bg); color: white; font-family: sans-serif; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
-        header { padding: 40px 20px 10px; text-align: center; background: #000; border-bottom: 1px solid #222; }
+        header { padding: 45px 20px 10px; text-align: center; background: #000; border-bottom: 1px solid #222; }
         #map { flex: 1; width: 100%; }
-        .controls { padding: 20px; background: rgba(10,15,25,0.95); border-radius: 20px 20px 0 0; }
-        .timer { font-size: 2.5rem; text-align: center; margin-bottom: 15px; color: var(--blue); font-family: monospace; }
-        .btn { width: 100%; padding: 18px; border-radius: 12px; border: none; font-weight: bold; font-size: 1rem; color: white; background: var(--blue); }
+        .controls { padding: 20px; background: rgba(10,15,25,0.95); border-radius: 20px 20px 0 0; border-top: 1px solid #333; }
+        .timer { font-size: 2.8rem; text-align: center; margin-bottom: 15px; color: var(--blue); font-family: monospace; font-weight: bold; }
+        .btn { width: 100%; padding: 20px; border-radius: 15px; border: none; font-weight: bold; font-size: 1.1rem; color: white; background: var(--blue); box-shadow: 0 4px 15px rgba(0,102,178,0.3); }
         .btn-stop { background: #d00; margin-top: 10px; }
-        .stats { display: flex; justify-content: space-around; margin-top: 15px; font-size: 0.8rem; color: #aaa; }
+        .stats { display: flex; justify-content: space-around; margin-top: 15px; text-transform: uppercase; letter-spacing: 1px; }
+        .stat-box { text-align: center; }
+        .stat-val { display: block; font-size: 1.2rem; font-weight: bold; color: var(--orange); }
     </style>
 </head>
 <body>
@@ -27,31 +29,31 @@
 <div class="controls">
     <div class="timer" id="stopwatch">00:00:00</div>
     <button id="btnStart" class="btn" onclick="startDrive()">INICIAR VIAGEM</button>
-    <button id="btnStop" class="btn btn-stop" onclick="stopDrive()" style="display:none">ENCERRAR</button>
+    <button id="btnStop" class="btn btn-stop" onclick="stopDrive()" style="display:none">ENCERRAR PERCURSO</button>
     
     <div class="stats">
-        <div>DISTÂNCIA: <span id="dist" style="color:white">0.0</span> km</div>
-        <div>VELOCIDADE: <span id="speed" style="color:white">0</span> km/h</div>
+        <div class="stat-box">KM <span id="dist" class="stat-val">0.0</span></div>
+        <div class="stat-box">KM/H <span id="speed" class="stat-val">0</span></div>
     </div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    let map, path = [], polyline, watchId, startTime;
+    let map, path = [], polyline, watchId, startTime, timerInterval;
 
-    // Inicializa o Mapa
-    map = L.map('map', { zoomControl: false, attributionControl: false }).setView([0,0], 15);
+    // 1. Iniciar Mapa
+    map = L.map('map', { zoomControl: false, attributionControl: false }).setView([-23.55, -46.63], 15);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
-    polyline = L.polyline([], {color: '#0066b2', weight: 6}).addTo(map);
-    let marker = L.circleMarker([0,0], {radius: 7, color: '#fff', fillColor: '#0066b2', fillOpacity: 1}).addTo(map);
+    polyline = L.polyline([], {color: '#0066b2', weight: 6, opacity: 0.8}).addTo(map);
+    let marker = L.circleMarker([0,0], {radius: 8, color: '#fff', fillColor: '#0066b2', fillOpacity: 1}).addTo(map);
 
+    // 2. Função GPS Tempo Real
     function startDrive() {
         path = [];
         startTime = Date.now();
         document.getElementById('btnStart').style.display = 'none';
         document.getElementById('btnStop').style.display = 'block';
 
-        // GPS EM TEMPO REAL (Alta Precisão)
         watchId = navigator.geolocation.watchPosition(pos => {
             const { latitude, longitude, speed } = pos.coords;
             const currentPos = [latitude, longitude];
@@ -59,16 +61,12 @@
             path.push(currentPos);
             polyline.setLatLngs(path);
             marker.setLatLng(currentPos);
-            map.flyTo(currentPos, 17); // Segue o carro
+            map.flyTo(currentPos, 17, {animate: true});
 
-            if(speed) document.getElementById('speed').innerText = Math.round(speed * 3.6);
-            
-            // Cálculo simples de distância (opcional: usar fórmula de haversine para precisão real)
-            document.getElementById('dist').innerText = (path.length * 0.005).toFixed(2); 
+            if(speed > 0) document.getElementById('speed').innerText = Math.round(speed * 3.6);
+            document.getElementById('dist').innerText = (path.length * 0.008).toFixed(1); 
+        }, err => alert("Ative o GPS do seu S24!"), { enableHighAccuracy: true });
 
-        }, null, { enableHighAccuracy: true, maximumAge: 0 });
-
-        // Cronômetro
         timerInterval = setInterval(() => {
             let d = new Date(Date.now() - startTime);
             document.getElementById('stopwatch').innerText = d.toISOString().substr(11, 8);
@@ -80,13 +78,11 @@
         clearInterval(timerInterval);
         document.getElementById('btnStart').style.display = 'block';
         document.getElementById('btnStop').style.display = 'none';
-        map.fitBounds(polyline.getBounds());
+        if(path.length > 0) map.fitBounds(polyline.getBounds());
     }
 
-    // Registro do PWA
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js');
-    }
+    // Registro PWA
+    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
 </script>
 </body>
 </html>
