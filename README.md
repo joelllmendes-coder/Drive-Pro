@@ -15,6 +15,6 @@ Full Screen 9:16: Optimized for long screens like the S24, taking advantage of e
 Offline operation: Thanks to Service Worker, the basic tools load even in internet signal shadow zones.
 4. Ergonomic "Cockpit" interface
 The design was designed for automotive use:
-High Contrast: Dark colors with accents in BMW Blue and Orange to prevent visual fatigue and ensure quick reading in sunlight.
+High Contrast: Dark colors with accents in Blue and Orange to prevent visual fatigue and ensure quick reading in sunlight.
 Quick Action Buttons: The "Start" button and the "Centralize Map" button are large and positioned for easy thumb reach.
 Summary of Functionalities
